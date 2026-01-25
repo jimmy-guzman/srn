@@ -22,8 +22,10 @@ function getWorkspaceArgs(
   return configs[pm];
 }
 
-async function detectPackageManager() {
+async function detectPackageManager(cwd?: string) {
   const { access } = await import("node:fs/promises");
+  const rootDir = cwd ?? process.cwd();
+
   const lockFiles = [
     { file: "pnpm-lock.yaml", manager: "pnpm" },
     { file: "yarn.lock", manager: "yarn" },
@@ -33,7 +35,7 @@ async function detectPackageManager() {
 
   for (const { file, manager } of lockFiles) {
     try {
-      await access(file);
+      await access(join(rootDir, file));
 
       return manager;
     } catch {
@@ -67,6 +69,9 @@ export async function executeScript(cwd: string, selected: ScriptMatch) {
     ? getWorkspaceArgs(pm, selected.workspace, selected.script)
     : ["run", selected.script];
 
-  await x(pm, pmArgs, { nodeOptions: { stdio: "inherit" } });
-  await recordScript(pkgPath, selected.script);
+  const result = await x(pm, pmArgs, { nodeOptions: { stdio: "inherit" } });
+
+  if (result.exitCode === 0) {
+    await recordScript(pkgPath, selected.script);
+  }
 }

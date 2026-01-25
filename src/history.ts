@@ -37,7 +37,13 @@ async function loadHistory() {
   try {
     const data = await readFile(HISTORY_FILE, "utf8");
 
-    return JSON.parse(data) as ScriptHistory;
+    const parsed: unknown = JSON.parse(data);
+
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed as ScriptHistory;
+    }
+
+    return {};
   } catch {
     return {};
   }

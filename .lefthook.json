@@ -4,12 +4,12 @@
     "parallel": true,
     "commands": {
       "lint": {
-        "glob": "*.ts",
+        "glob": "**/*.ts",
         "run": "pnpm exec eslint --fix {staged_files}",
         "stage_fixed": true
       },
       "format": {
-        "glob": "*.{md,json,yml,yaml,ts}",
+        "glob": "**/*.{md,json,yml,yaml,ts}",
         "run": "pnpm exec prettier --write --experimental-cli {staged_files}",
         "stage_fixed": true
       }

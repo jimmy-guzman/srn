@@ -40,7 +40,9 @@ function mapFuzzyResults(
 }
 
 export function fuzzyMatch(query: string, scripts: ScriptMatch[]) {
-  const haystack = scripts.map((s) => `${s.script}|${s.workspace}`);
+  const haystack = scripts.map((s) => {
+    return s.workspace ? `${s.script}|${s.workspace}` : s.script;
+  });
   const [indexes, info, order] = fuzzySearcher.search(haystack, query);
 
   if (!indexes || !info || indexes.length === 0) {
