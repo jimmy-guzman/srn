@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { fdir } from "fdir";
 import { join, relative, resolve } from "pathe";
+import picomatch from "picomatch";
 import { readPackageJSON } from "pkg-types";
 import { parse as parseYaml } from "yaml";
 
@@ -65,19 +66,6 @@ async function findWorkspaceRoot(cwd: string) {
   return null;
 }
 
-function matchesPattern(path: string, pattern: string) {
-  // Convert glob pattern to regex
-  // Handle basic patterns like "packages/*", "apps/**", etc.
-  const regexPattern = pattern
-    .replaceAll("**", ".*")
-    .replaceAll("*", "[^/]*")
-    .replaceAll("?", "[^/]");
-
-  const regex = new RegExp(`^${regexPattern}(/|$)`);
-
-  return regex.test(path);
-}
-
 function isWorkspaceObject(
   config: WorkspaceConfig,
 ): config is { packages?: string[] } {
@@ -125,7 +113,6 @@ async function getWorkspacePackages(rootDir: string, rootPkg: PackageJson) {
   const packages: PackageInfo[] = [];
 
   for (const pkgPath of pkgJsonPaths) {
-    // Skip root package.json
     if (pkgPath === rootPkgPath) {
       continue;
     }
@@ -133,8 +120,13 @@ async function getWorkspacePackages(rootDir: string, rootPkg: PackageJson) {
     const dir = pkgPath.slice(0, -13); // Remove '/package.json' (13 chars)
     const relPath = relative(rootDir, dir);
 
-    // Check if path matches any workspace pattern
-    if (!patterns.some((pattern) => matchesPattern(relPath, pattern))) {
+    if (
+      !patterns.some((pattern) => {
+        const matcher = picomatch(pattern);
+
+        return matcher(relPath);
+      })
+    ) {
       continue;
     }
 

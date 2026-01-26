@@ -14,6 +14,9 @@ importers:
       pathe:
         specifier: 2.0.3
         version: 2.0.3
+      picomatch:
+        specifier: 4.0.3
+        version: 4.0.3
       pkg-types:
         specifier: 2.3.0
         version: 2.3.0
@@ -42,6 +45,9 @@ importers:
       '@types/node':
         specifier: 24.10.7
         version: 24.10.7
+      '@types/picomatch':
+        specifier: 4.0.2
+        version: 4.0.2
       '@vitest/coverage-v8':
         specifier: 4.0.18
         version: 4.0.18(vitest@4.0.18(@types/node@24.10.7)(jiti@2.6.1)(yaml@2.8.2))
@@ -1003,6 +1009,9 @@ packages:
 
   '@types/node@24.10.7':
     resolution: {integrity: sha512-+054pVMzVTmRQV8BhpGv3UyfZ2Llgl8rdpDTon+cUH9+na0ncBVXj3wTUKh14+Kiz18ziM3b4ikpP5/Pc0rQEQ==}
+
+  '@types/picomatch@4.0.2':
+    resolution: {integrity: sha512-qHHxQ+P9PysNEGbALT8f8YOSHW0KJu6l2xU8DYY0fu/EmGxXdVnuTLvFUvBgPJMSqXq29SYHveejeAha+4AYgA==}
 
   '@typescript-eslint/eslint-plugin@8.53.1':
     resolution: {integrity: sha512-cFYYFZ+oQFi6hUnBTbLRXfTJiaQtYE3t4O692agbBl+2Zy+eqSKWtPjhPXJu1G7j4RLjKgeJPDdq3EqOwmX5Ag==}
@@ -4337,6 +4346,8 @@ snapshots:
   '@types/node@24.10.7':
     dependencies:
       undici-types: 7.16.0
+
+  '@types/picomatch@4.0.2': {}
 
   '@typescript-eslint/eslint-plugin@8.53.1(@typescript-eslint/parser@8.53.1(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3))(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3)':
     dependencies:
