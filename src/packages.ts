@@ -13,9 +13,11 @@ type WorkspaceConfig = string[] | undefined | { packages?: string[] };
 
 export interface PackageInfo {
   dir: string;
+  dirName: string;
+  isRoot: boolean;
   name: string;
-  packageJson: PackageJson;
   relativeDir: string;
+  scripts?: PackageJson["scripts"];
 }
 
 function readPnpmWorkspaceYaml(dir: string) {
@@ -47,7 +49,6 @@ async function findWorkspaceRoot(cwd: string) {
       try {
         const pkg = await readPackageJSON(pkgPath);
 
-        // Check for workspace configuration
         const workspaces = pkg.workspaces as WorkspaceConfig;
         const pnpm = pkg.pnpm as PnpmConfig;
         const pnpmYaml = readPnpmWorkspaceYaml(dir);
@@ -73,7 +74,6 @@ function isWorkspaceObject(
 }
 
 function getWorkspacePatterns(rootDir: string, rootPkg: PackageJson) {
-  // Check pnpm-workspace.yaml first (takes precedence)
   const pnpmYaml = readPnpmWorkspaceYaml(rootDir);
 
   if (pnpmYaml) {
@@ -101,7 +101,6 @@ async function getWorkspacePackages(rootDir: string, rootPkg: PackageJson) {
     return [];
   }
 
-  // Find all package.json files
   const pkgJsonPaths = await new fdir()
     .withBasePath()
     .exclude((dirName) => dirName === "node_modules")
@@ -117,8 +116,9 @@ async function getWorkspacePackages(rootDir: string, rootPkg: PackageJson) {
       continue;
     }
 
-    const dir = pkgPath.slice(0, -13); // Remove '/package.json' (13 chars)
+    const dir = pkgPath.slice(0, -13);
     const relPath = relative(rootDir, dir);
+    const dirName = relPath.split("/").pop() ?? relPath;
 
     if (
       !patterns.some((pattern) => {
@@ -132,15 +132,16 @@ async function getWorkspacePackages(rootDir: string, rootPkg: PackageJson) {
 
     try {
       const packageJson = await readPackageJSON(dir);
+      const name = packageJson.name ?? dirName;
 
-      if (packageJson.name) {
-        packages.push({
-          dir,
-          name: packageJson.name,
-          packageJson,
-          relativeDir: relPath,
-        });
-      }
+      packages.push({
+        dir,
+        dirName,
+        isRoot: false,
+        name,
+        relativeDir: relPath,
+        scripts: packageJson.scripts,
+      });
     } catch {
       // Skip invalid packages
     }
@@ -149,47 +150,40 @@ async function getWorkspacePackages(rootDir: string, rootPkg: PackageJson) {
   return packages;
 }
 
-export async function getPackagesInfo(cwd: string) {
+export async function getPackages(cwd: string) {
   try {
     const rootDir = await findWorkspaceRoot(cwd);
 
     if (!rootDir) {
-      // Single package (no workspace)
       const packageJson = await readPackageJSON(cwd);
-      const rootPackage = {
-        dir: cwd,
-        name: packageJson.name ?? "unknown",
-        packageJson,
-        relativeDir: ".",
-      };
+      const name = packageJson.name ?? ".";
 
-      return {
-        packages: [rootPackage],
-        rootPackage,
-        workspaces: [],
-      };
+      return [
+        {
+          dir: cwd,
+          dirName: ".",
+          isRoot: true,
+          name,
+          relativeDir: ".",
+          scripts: packageJson.scripts,
+        },
+      ];
     }
 
     const rootPkg = await readPackageJSON(rootDir);
-    const rootPackage = {
+    const rootPackage: PackageInfo = {
       dir: rootDir,
-      name: rootPkg.name ?? "unknown",
-      packageJson: rootPkg,
+      dirName: ".",
+      isRoot: true,
+      name: rootPkg.name ?? ".",
       relativeDir: ".",
+      scripts: rootPkg.scripts,
     };
 
     const workspacePackages = await getWorkspacePackages(rootDir, rootPkg);
-    const packages = [rootPackage, ...workspacePackages];
 
-    return {
-      packages,
-      rootPackage,
-      workspaces: workspacePackages,
-    };
+    return [rootPackage, ...workspacePackages];
   } catch {
-    return {
-      packages: [],
-      workspaces: [],
-    };
+    return [];
   }
 }

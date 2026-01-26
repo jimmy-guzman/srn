@@ -5,21 +5,18 @@ import type { PackageInfo } from "./packages";
 import { executeScript, executeScriptByName } from "./execute";
 import { fuzzyMatch } from "./fuzzy";
 import { logger } from "./logger";
-import { getPackagesInfo } from "./packages";
+import { getPackages } from "./packages";
 import { interactiveFindScript } from "./prompts";
 import { getAllScripts } from "./scripts";
 
-interface WorkspaceInfo {
-  name: string;
-  relativeDir: string;
-}
+function parseScriptArgs(positionals: string[], packages: PackageInfo[]) {
+  const workspacePackages = packages.filter((p) => !p.isRoot);
 
-function parseScriptArgs(positionals: string[], workspaces: WorkspaceInfo[]) {
-  const firstMatchesWorkspace = workspaces.some((w) => {
+  const firstMatchesWorkspace = workspacePackages.some((w) => {
     return (
       w.name === positionals[0] ||
       w.relativeDir === positionals[0] ||
-      w.relativeDir.split("/").pop() === positionals[0]
+      w.dirName === positionals[0]
     );
   });
 
@@ -36,18 +33,22 @@ function parseScriptArgs(positionals: string[], workspaces: WorkspaceInfo[]) {
   };
 }
 
-function findWorkspace(workspace: string, workspaces: PackageInfo[]) {
-  return workspaces.find((w) => {
+function findWorkspace(workspace: string, packages: PackageInfo[]) {
+  return packages.find((w) => {
     return (
       w.name === workspace ||
       w.relativeDir === workspace ||
-      w.relativeDir.split("/").pop() === workspace
+      w.dirName === workspace
     );
   });
 }
 
-async function handleFuzzySearch(cwd: string, scriptName: string) {
-  const allScripts = await getAllScripts(cwd);
+async function handleFuzzySearch(
+  cwd: string,
+  packages: PackageInfo[],
+  scriptName: string,
+) {
+  const allScripts = await getAllScripts(packages);
   const matches = fuzzyMatch(scriptName, allScripts);
 
   if (matches.length === 0) {
@@ -66,21 +67,22 @@ async function handleFuzzySearch(cwd: string, scriptName: string) {
 }
 
 export async function runDirectMode(cwd: string, positionals: string[]) {
-  const { rootPackage, workspaces } = await getPackagesInfo(cwd);
+  const packages = await getPackages(cwd);
+  const rootPackage = packages.find((p) => p.isRoot);
 
   if (positionals.length === 0) {
-    await handleFuzzySearch(cwd, "");
+    await handleFuzzySearch(cwd, packages, "");
 
     return;
   }
 
-  const { scriptName, workspace } = parseScriptArgs(positionals, workspaces);
+  const { scriptName, workspace } = parseScriptArgs(positionals, packages);
 
   try {
-    const pkg = workspace ? findWorkspace(workspace, workspaces) : rootPackage;
+    const pkg = workspace ? findWorkspace(workspace, packages) : rootPackage;
 
     if (workspace && !pkg) {
-      await handleFuzzySearch(cwd, scriptName ?? workspace);
+      await handleFuzzySearch(cwd, packages, scriptName ?? workspace);
 
       return;
     }
@@ -88,17 +90,16 @@ export async function runDirectMode(cwd: string, positionals: string[]) {
     const pkgPath = pkg ? join(cwd, pkg.relativeDir) : cwd;
 
     if (scriptName) {
-      await (pkg?.packageJson.scripts?.[scriptName]
+      await (pkg?.scripts?.[scriptName]
         ? executeScriptByName(
             pkgPath,
             scriptName,
             workspace ? pkg.name : undefined,
           )
-        : handleFuzzySearch(cwd, scriptName));
+        : handleFuzzySearch(cwd, packages, scriptName));
     }
   } catch (error) {
     logger.error(error);
-
     process.exit(1);
   }
 }

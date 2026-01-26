@@ -1,7 +1,6 @@
 import type { PackageInfo } from "./packages";
 
 import { sortScriptsByFrequency } from "./history";
-import { getPackagesInfo } from "./packages";
 
 export interface ScriptMatch {
   command: string;
@@ -11,26 +10,24 @@ export interface ScriptMatch {
 }
 
 function createScriptMatch(pkg: PackageInfo, scriptName: string) {
-  const command = pkg.packageJson.scripts?.[scriptName];
+  const command = pkg.scripts?.[scriptName];
 
   if (!command) return null;
-
-  const isRoot = pkg.relativeDir === ".";
 
   return {
     command,
     script: scriptName,
-    workspace: isRoot ? undefined : pkg.name,
-    workspacePath: isRoot ? undefined : pkg.relativeDir,
+    workspace: pkg.isRoot ? undefined : pkg.name,
+    workspacePath: pkg.isRoot ? undefined : pkg.relativeDir,
   };
 }
 
 async function getPackageScripts(pkg: PackageInfo) {
-  if (!pkg.packageJson.scripts) {
+  if (!pkg.scripts) {
     return [];
   }
 
-  const scriptNames = Object.keys(pkg.packageJson.scripts);
+  const scriptNames = Object.keys(pkg.scripts);
   const sortedNames = await sortScriptsByFrequency(pkg.dir, scriptNames);
 
   return sortedNames.flatMap((name) => {
@@ -40,11 +37,10 @@ async function getPackageScripts(pkg: PackageInfo) {
   });
 }
 
-export async function getAllScripts(cwd: string) {
-  const packagesInfo = await getPackagesInfo(cwd);
+export async function getAllScripts(packages: PackageInfo[]) {
   const allScripts: ScriptMatch[] = [];
 
-  for (const pkg of packagesInfo.packages) {
+  for (const pkg of packages) {
     const scripts = await getPackageScripts(pkg);
 
     allScripts.push(...scripts);
