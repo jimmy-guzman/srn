@@ -15,7 +15,15 @@ interface WorkspaceInfo {
 }
 
 function parseScriptArgs(positionals: string[], workspaces: WorkspaceInfo[]) {
-  if (workspaces.length > 1) {
+  const firstMatchesWorkspace = workspaces.some((w) => {
+    return (
+      w.name === positionals[0] ||
+      w.relativeDir === positionals[0] ||
+      w.relativeDir.split("/").pop() === positionals[0]
+    );
+  });
+
+  if (firstMatchesWorkspace && positionals.length >= 2) {
     return {
       scriptName: positionals[1],
       workspace: positionals[0],
@@ -81,7 +89,7 @@ export async function runDirectMode(cwd: string, positionals: string[]) {
 
     if (scriptName) {
       await (pkg?.packageJson.scripts?.[scriptName]
-        ? executeScriptByName(pkgPath, scriptName, pkg.name)
+        ? executeScriptByName(pkgPath, scriptName, workspace)
         : handleFuzzySearch(cwd, scriptName));
     }
   } catch (error) {
