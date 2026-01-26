@@ -89,7 +89,11 @@ export async function runDirectMode(cwd: string, positionals: string[]) {
 
     if (scriptName) {
       await (pkg?.packageJson.scripts?.[scriptName]
-        ? executeScriptByName(pkgPath, scriptName, workspace)
+        ? executeScriptByName(
+            pkgPath,
+            scriptName,
+            workspace ? pkg.name : undefined,
+          )
         : handleFuzzySearch(cwd, scriptName));
     }
   } catch (error) {
