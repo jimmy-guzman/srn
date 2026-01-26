@@ -1,4 +1,4 @@
-import { join } from "pathe";
+import { join, resolve } from "pathe";
 import { x } from "tinyexec";
 
 import type { ScriptMatch } from "./scripts";
@@ -57,13 +57,14 @@ export async function executeScriptByName(
     : ["run", scriptName];
 
   await x(pm, pmArgs, { nodeOptions: { stdio: "inherit" } });
-  await recordScript(pkgPath, scriptName);
+  await recordScript(resolve(pkgPath), scriptName);
 }
 
 export async function executeScript(cwd: string, selected: ScriptMatch) {
   const pkgPath = selected.workspacePath
-    ? join(cwd, selected.workspacePath)
-    : cwd;
+    ? resolve(cwd, selected.workspacePath)
+    : resolve(cwd);
+
   const pm = await detectPackageManager();
   const pmArgs = selected.workspace
     ? getWorkspaceArgs(pm, selected.workspace, selected.script)
