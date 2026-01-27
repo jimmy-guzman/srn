@@ -5,7 +5,9 @@
 [![downloads](https://img.shields.io/npm/dm/srx.svg?logo=npm&style=flat-square)](http://www.npmtrends.com/srx)
 [![Install Size][install-size-badge]][packagephobia]
 
-> Smart package.json script runner with fuzzy finding and workspace support
+> Smart package.json script runner
+
+Run scripts directly by name, across workspaces, or fall back to fuzzy search when you don’t remember the exact command.
 
 ## Usage
 
