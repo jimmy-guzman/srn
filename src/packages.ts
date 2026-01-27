@@ -107,8 +107,10 @@ async function getWorkspacePackages(rootDir: string, rootPkg: PackageJson) {
     .filter((path) => path.endsWith("package.json"))
     .crawl(rootDir)
     .withPromise();
-
   const rootPkgPath = join(rootDir, "package.json");
+
+  const matcher = picomatch(patterns);
+
   const packages: PackageInfo[] = [];
 
   for (const pkgPath of pkgJsonPaths) {
@@ -120,13 +122,7 @@ async function getWorkspacePackages(rootDir: string, rootPkg: PackageJson) {
     const relPath = relative(rootDir, dir);
     const dirName = relPath.split("/").pop() ?? relPath;
 
-    if (
-      !patterns.some((pattern) => {
-        const matcher = picomatch(pattern);
-
-        return matcher(relPath);
-      })
-    ) {
+    if (!matcher(relPath)) {
       continue;
     }
 
