@@ -14,52 +14,15 @@ type ScriptHistory = Record<string, ProjectHistory>;
 const HISTORY_DIR = join(homedir(), ".srx");
 const HISTORY_FILE = join(HISTORY_DIR, "history.json");
 
-export async function recordScript(projectPath: string, scriptName: string) {
-  const history = await loadHistory();
-  const updatedHistory = updateScriptRecord(history, projectPath, scriptName);
-
-  await saveHistory(updatedHistory);
-}
-
-export async function sortScriptsByFrequency(
-  projectPath: string,
-  scripts: string[],
+function compareScriptFrequency(
+  a: string,
+  b: string,
+  projectHistory: ProjectHistory,
 ) {
-  const history = await loadHistory();
-  const projectHistory = history[projectPath] ?? {};
+  const aCount = projectHistory[a]?.count ?? 0;
+  const bCount = projectHistory[b]?.count ?? 0;
 
-  return scripts.toSorted((a, b) =>
-    compareScriptFrequency(a, b, projectHistory),
-  );
-}
-
-async function loadHistory() {
-  try {
-    const data = await readFile(HISTORY_FILE, "utf8");
-
-    const parsed: unknown = JSON.parse(data);
-
-    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-      return parsed as ScriptHistory;
-    }
-
-    return {};
-  } catch {
-    return {};
-  }
-}
-
-async function saveHistory(history: ScriptHistory) {
-  try {
-    await ensureHistoryDir();
-    await writeFile(HISTORY_FILE, JSON.stringify(history, null, 2));
-  } catch {
-    // Silently ignore write errors
-  }
-}
-
-async function ensureHistoryDir() {
-  await mkdir(HISTORY_DIR, { recursive: true });
+  return bCount - aCount;
 }
 
 function updateScriptRecord(
@@ -81,13 +44,50 @@ function updateScriptRecord(
   return updatedHistory;
 }
 
-function compareScriptFrequency(
-  a: string,
-  b: string,
-  projectHistory: ProjectHistory,
-) {
-  const aCount = projectHistory[a]?.count ?? 0;
-  const bCount = projectHistory[b]?.count ?? 0;
+async function ensureHistoryDir() {
+  await mkdir(HISTORY_DIR, { recursive: true });
+}
 
-  return bCount - aCount;
+async function saveHistory(history: ScriptHistory) {
+  try {
+    await ensureHistoryDir();
+    await writeFile(HISTORY_FILE, JSON.stringify(history, null, 2));
+  } catch {
+    // Silently ignore write errors
+  }
+}
+
+async function loadHistory() {
+  try {
+    const data = await readFile(HISTORY_FILE, "utf8");
+
+    const parsed: unknown = JSON.parse(data);
+
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed as ScriptHistory;
+    }
+
+    return {};
+  } catch {
+    return {};
+  }
+}
+
+export async function sortScriptsByFrequency(
+  projectPath: string,
+  scripts: string[],
+) {
+  const history = await loadHistory();
+  const projectHistory = history[projectPath] ?? {};
+
+  return scripts.toSorted((a, b) =>
+    compareScriptFrequency(a, b, projectHistory),
+  );
+}
+
+export async function recordScript(projectPath: string, scriptName: string) {
+  const history = await loadHistory();
+  const updatedHistory = updateScriptRecord(history, projectPath, scriptName);
+
+  await saveHistory(updatedHistory);
 }

@@ -1,6 +1,6 @@
 import { inspect } from "node:util";
 
-import * as c from "./colors";
+import * as c from "picocolors";
 
 function formatError(error: Error) {
   const lines = [error.message];
