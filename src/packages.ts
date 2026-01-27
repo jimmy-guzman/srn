@@ -42,13 +42,12 @@ async function findWorkspaceRoot(cwd: string) {
 
   const root = resolve("/");
 
-  while (dir !== root) {
+  do {
     const pkgPath = join(dir, "package.json");
 
     if (existsSync(pkgPath)) {
       try {
         const pkg = await readPackageJSON(pkgPath);
-
         const workspaces = pkg.workspaces as WorkspaceConfig;
         const pnpm = pkg.pnpm as PnpmConfig;
         const pnpmYaml = readPnpmWorkspaceYaml(dir);
@@ -62,7 +61,7 @@ async function findWorkspaceRoot(cwd: string) {
     }
 
     dir = resolve(dir, "..");
-  }
+  } while (dir !== root);
 
   return null;
 }
