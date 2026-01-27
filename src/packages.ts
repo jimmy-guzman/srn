@@ -20,19 +20,33 @@ export interface PackageInfo {
   scripts?: PackageJson["scripts"];
 }
 
+const pnpmWorkspaceCache = new Map<string, null | string[]>();
+
 function readPnpmWorkspaceYaml(dir: string) {
   const yamlPath = join(dir, "pnpm-workspace.yaml");
 
+  if (pnpmWorkspaceCache.has(yamlPath)) {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- has guarantees existence
+    return pnpmWorkspaceCache.get(yamlPath)!;
+  }
+
   if (!existsSync(yamlPath)) {
+    pnpmWorkspaceCache.set(yamlPath, null);
+
     return null;
   }
 
   try {
     const content = readFileSync(yamlPath, "utf8");
     const parsed = parseYaml(content) as { packages?: string[] };
+    const packages = parsed.packages ?? [];
 
-    return parsed.packages ?? [];
+    pnpmWorkspaceCache.set(yamlPath, packages);
+
+    return packages;
   } catch {
+    pnpmWorkspaceCache.set(yamlPath, null);
+
     return null;
   }
 }
@@ -40,6 +54,8 @@ function readPnpmWorkspaceYaml(dir: string) {
 async function findWorkspaceRoot(cwd: string) {
   let dir = resolve(cwd);
   let parent = resolve(dir, "..");
+
+  if (parent === dir) return null;
 
   while (parent !== dir) {
     const pkgPath = join(dir, "package.json");
@@ -51,9 +67,9 @@ async function findWorkspaceRoot(cwd: string) {
         const pnpm = pkg.pnpm as PnpmConfig;
         const pnpmYaml = readPnpmWorkspaceYaml(dir);
 
-        if (workspaces || pnpm?.workspaces || pnpmYaml) {
-          return dir;
-        }
+        if (pnpmYaml) return dir;
+
+        if (workspaces || pnpm?.workspaces) return dir;
       } catch {
         // Continue searching
       }
@@ -75,13 +91,9 @@ function isWorkspaceObject(
 function getWorkspacePatterns(rootDir: string, rootPkg: PackageJson) {
   const pnpmYaml = readPnpmWorkspaceYaml(rootDir);
 
-  if (pnpmYaml) {
-    return pnpmYaml;
-  }
+  if (pnpmYaml) return pnpmYaml;
 
-  if (Array.isArray(rootPkg.workspaces)) {
-    return rootPkg.workspaces;
-  }
+  if (Array.isArray(rootPkg.workspaces)) return rootPkg.workspaces;
 
   const workspaces = rootPkg.workspaces as WorkspaceConfig;
   const pnpm = rootPkg.pnpm as PnpmConfig;
@@ -96,9 +108,7 @@ function getWorkspacePatterns(rootDir: string, rootPkg: PackageJson) {
 async function getWorkspacePackages(rootDir: string, rootPkg: PackageJson) {
   const patterns = getWorkspacePatterns(rootDir, rootPkg);
 
-  if (patterns.length === 0) {
-    return [];
-  }
+  if (patterns.length === 0) return [];
 
   const pkgJsonPaths = await new fdir()
     .withBasePath()
@@ -106,34 +116,34 @@ async function getWorkspacePackages(rootDir: string, rootPkg: PackageJson) {
     .filter((path) => path.endsWith("package.json"))
     .crawl(rootDir)
     .withPromise();
+
   const rootPkgPath = join(rootDir, "package.json");
-
   const matcher = picomatch(patterns);
-
   const packages: PackageInfo[] = [];
 
+  if (pkgJsonPaths.length > 1) {
+    packages.length = 0;
+  }
+
   for (const pkgPath of pkgJsonPaths) {
-    if (pkgPath === rootPkgPath) {
-      continue;
-    }
+    if (pkgPath === rootPkgPath) continue;
 
     const dir = pkgPath.slice(0, -13);
     const relPath = relative(rootDir, dir);
-    const dirName = relPath.split("/").pop() ?? relPath;
 
-    if (!matcher(relPath)) {
-      continue;
-    }
+    if (!matcher(relPath)) continue;
+
+    const lastSlash = relPath.lastIndexOf("/");
+    const dirName = lastSlash === -1 ? relPath : relPath.slice(lastSlash + 1);
 
     try {
       const packageJson = await readPackageJSON(dir);
-      const name = packageJson.name ?? dirName;
 
       packages.push({
         dir,
         dirName,
         isRoot: false,
-        name,
+        name: packageJson.name ?? dirName,
         relativeDir: relPath,
         scripts: packageJson.scripts,
       });
@@ -151,14 +161,13 @@ export async function getPackages(cwd: string) {
 
     if (!rootDir) {
       const packageJson = await readPackageJSON(cwd);
-      const name = packageJson.name ?? ".";
 
       return [
         {
           dir: cwd,
           dirName: ".",
           isRoot: true,
-          name,
+          name: packageJson.name ?? ".",
           relativeDir: ".",
           scripts: packageJson.scripts,
         },
