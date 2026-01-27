@@ -19,5 +19,7 @@ export async function runInteractiveMode(cwd: string) {
     process.exit(0);
   }
 
-  await executeScript(cwd, selected);
+  const code = await executeScript(cwd, selected);
+
+  process.exit(code);
 }

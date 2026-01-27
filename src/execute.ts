@@ -75,4 +75,6 @@ export async function executeScript(cwd: string, selected: ScriptMatch) {
   if (result.exitCode === 0) {
     await recordScript(pkgPath, selected.script);
   }
+
+  return result.exitCode;
 }
