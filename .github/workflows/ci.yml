@@ -1,0 +1,53 @@
+name: ci
+
+on: [pull_request]
+
+jobs:
+  code_check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: ["22.13.0", "24"]
+
+    steps:
+      - name: 🏗 Setup Repository
+        uses: actions/checkout@v6
+
+      - name: 📦 Install
+        uses: ./.github/actions/install
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: 🦺 Check
+        uses: ./.github/actions/check
+
+      - name: 🔧 Build
+        run: pnpm build
+
+  commit_check:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pull-requests: read
+
+    steps:
+      - name: 🏗 Setup Repository
+        uses: actions/checkout@v6
+
+      - name: 🚨 Commitlint
+        uses: wagoid/commitlint-github-action@v6
+        with:
+          configFile: .commitlintrc.json
+
+  spell_check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🏗 Setup Repository
+        uses: actions/checkout@v6
+
+      - name: 🚨 Spellcheck
+        uses: streetsidesoftware/cspell-action@v8
+        with:
+          inline: error
