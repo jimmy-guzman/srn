@@ -30,6 +30,7 @@ function createScriptOption(match: ScriptMatch) {
 export async function interactiveFindScript(allScripts: ScriptMatch[]) {
   const options = allScripts.map(createScriptOption);
   const result = await autocomplete({
+    maxItems: 7,
     message: "Select a script to run:",
     options,
   });
