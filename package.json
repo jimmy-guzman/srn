@@ -1,6 +1,6 @@
 {
   "name": "srn",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Smart package.json script runner with direct mode, fuzzy fallback, and workspace support.",
   "keywords": [
     "cli",
