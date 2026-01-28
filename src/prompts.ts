@@ -1,5 +1,3 @@
-import { autocomplete, isCancel } from "@clack/prompts";
-
 import type { ScriptMatch } from "./scripts";
 
 const COMMAND_TRUNCATE_LENGTH = 50;
@@ -28,6 +26,8 @@ function createScriptOption(match: ScriptMatch) {
 }
 
 export async function interactiveFindScript(allScripts: ScriptMatch[]) {
+  const { autocomplete, isCancel } = await import("@clack/prompts");
+
   const options = allScripts.map(createScriptOption);
   const result = await autocomplete({
     message: "Select a script to run:",

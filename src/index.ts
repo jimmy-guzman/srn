@@ -1,8 +1,6 @@
 #!/usr/bin/env node
 import { parseArgs } from "node:util";
 
-import { readPackageJSON } from "pkg-types";
-
 import { runDirectMode } from "./direct";
 import { runInteractiveMode } from "./interactive";
 import { logger } from "./logger";
@@ -23,6 +21,8 @@ Options:
 }
 
 async function showVersion() {
+  const { readPackageJSON } = await import("pkg-types");
+
   const pkg = await readPackageJSON(import.meta.url);
 
   logger.log(pkg.version);

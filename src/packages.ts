@@ -2,11 +2,7 @@ import type { PackageJson } from "pkg-types";
 
 import { existsSync, readFileSync } from "node:fs";
 
-import { fdir } from "fdir";
 import { join, relative, resolve } from "pathe";
-import picomatch from "picomatch";
-import { readPackageJSON } from "pkg-types";
-import { parse as parseYaml } from "yaml";
 
 type PnpmConfig = undefined | { workspaces?: string[] };
 type WorkspaceConfig = string[] | undefined | { packages?: string[] };
@@ -22,7 +18,7 @@ export interface PackageInfo {
 
 const pnpmWorkspaceCache = new Map<string, null | string[]>();
 
-function readPnpmWorkspaceYaml(dir: string) {
+async function readPnpmWorkspaceYaml(dir: string) {
   const yamlPath = join(dir, "pnpm-workspace.yaml");
 
   if (pnpmWorkspaceCache.has(yamlPath)) {
@@ -37,6 +33,7 @@ function readPnpmWorkspaceYaml(dir: string) {
   }
 
   try {
+    const { parse: parseYaml } = await import("yaml");
     const content = readFileSync(yamlPath, "utf8");
     const parsed = parseYaml(content) as { packages?: string[] };
     const packages = parsed.packages ?? [];
@@ -52,6 +49,8 @@ function readPnpmWorkspaceYaml(dir: string) {
 }
 
 async function findWorkspaceRoot(cwd: string) {
+  const { readPackageJSON } = await import("pkg-types");
+
   let dir = resolve(cwd);
   let parent = resolve(dir, "..");
 
@@ -65,7 +64,7 @@ async function findWorkspaceRoot(cwd: string) {
         const pkg = await readPackageJSON(pkgPath);
         const workspaces = pkg.workspaces as WorkspaceConfig;
         const pnpm = pkg.pnpm as PnpmConfig;
-        const pnpmYaml = readPnpmWorkspaceYaml(dir);
+        const pnpmYaml = await readPnpmWorkspaceYaml(dir);
 
         if (pnpmYaml) return dir;
 
@@ -88,8 +87,8 @@ function isWorkspaceObject(
   return typeof config === "object" && !Array.isArray(config);
 }
 
-function getWorkspacePatterns(rootDir: string, rootPkg: PackageJson) {
-  const pnpmYaml = readPnpmWorkspaceYaml(rootDir);
+async function getWorkspacePatterns(rootDir: string, rootPkg: PackageJson) {
+  const pnpmYaml = await readPnpmWorkspaceYaml(rootDir);
 
   if (pnpmYaml) return pnpmYaml;
 
@@ -106,7 +105,10 @@ function getWorkspacePatterns(rootDir: string, rootPkg: PackageJson) {
 }
 
 async function getWorkspacePackages(rootDir: string, rootPkg: PackageJson) {
-  const patterns = getWorkspacePatterns(rootDir, rootPkg);
+  const { readPackageJSON } = await import("pkg-types");
+  const picomatch = await import("picomatch");
+  const { fdir } = await import("fdir");
+  const patterns = await getWorkspacePatterns(rootDir, rootPkg);
 
   if (patterns.length === 0) return [];
 
@@ -118,7 +120,7 @@ async function getWorkspacePackages(rootDir: string, rootPkg: PackageJson) {
     .withPromise();
 
   const rootPkgPath = join(rootDir, "package.json");
-  const matcher = picomatch(patterns);
+  const matcher = picomatch.default(patterns);
   const packages: PackageInfo[] = [];
 
   if (pkgJsonPaths.length > 1) {
@@ -157,6 +159,7 @@ async function getWorkspacePackages(rootDir: string, rootPkg: PackageJson) {
 
 export async function getPackages(cwd: string) {
   try {
+    const { readPackageJSON } = await import("pkg-types");
     const rootDir = await findWorkspaceRoot(cwd);
 
     if (!rootDir) {
