@@ -44,19 +44,22 @@ function detectPackageManager(cwd?: string): PackageManager {
   ] as const;
 
   let dir = rootDir;
-  let parent = resolve(dir, "..");
 
-  while (dir !== parent) {
+  for (;;) {
     for (const { file, manager } of lockFiles) {
       if (existsSync(join(dir, file))) {
         cachedPackageManager.set(rootDir, manager);
+        cachedPackageManager.set(dir, manager);
 
         return manager;
       }
     }
 
+    const parent = resolve(dir, "..");
+
+    if (parent === dir) break;
+
     dir = parent;
-    parent = resolve(dir, "..");
   }
 
   cachedPackageManager.set(rootDir, "npm");
