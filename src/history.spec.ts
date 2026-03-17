@@ -78,6 +78,28 @@ describe("history", () => {
 
       expect(result).toHaveLength(2);
     });
+
+    it("should use lastRun as tiebreaker when counts are equal", async () => {
+      vi.mocked(readFile).mockResolvedValue(
+        JSON.stringify({
+          "/project": {
+            build: { count: 3, lastRun: "2024-01-01T00:00:00.000Z" },
+            dev: { count: 3, lastRun: "2024-01-03T00:00:00.000Z" },
+            test: { count: 3, lastRun: "2024-01-02T00:00:00.000Z" },
+          },
+        }),
+      );
+
+      const result = await sortScriptsByFrequency("/project", [
+        "build",
+        "test",
+        "dev",
+      ]);
+
+      expect(result[0]).toBe("dev");
+      expect(result[1]).toBe("test");
+      expect(result[2]).toBe("build");
+    });
   });
 
   describe("recordScript", () => {

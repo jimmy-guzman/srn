@@ -48,3 +48,11 @@ export async function getAllScripts(packages: PackageInfo[]) {
 
   return allScripts;
 }
+
+export async function listScripts(packages: PackageInfo[]) {
+  const allScripts = await getAllScripts(packages);
+
+  return allScripts.map((s) => {
+    return s.workspace ? `${s.workspace}:${s.script}` : s.script;
+  });
+}

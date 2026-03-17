@@ -4,6 +4,8 @@ import { parseArgs } from "node:util";
 import { runDirectMode } from "./direct";
 import { runInteractiveMode } from "./interactive";
 import { logger } from "./logger";
+import { getPackages } from "./packages";
+import { listScripts } from "./scripts";
 
 function showHelp() {
   logger.log(`
@@ -13,6 +15,8 @@ Usage:
   srn                       Interactive mode - fuzzy find and select script
   srn <script>              Run a script from package.json
   srn [workspace] <script>  Run a script in a specific workspace
+  srn list                  List all available scripts
+  srn ls                    List all available scripts (alias)
 
 Options:
   -h, --help               Show this help message
@@ -51,6 +55,17 @@ if (values.version) {
 }
 
 const cwd = process.cwd();
+
+if (positionals[0] === "list" || positionals[0] === "ls") {
+  const packages = await getPackages(cwd);
+  const scripts = await listScripts(packages);
+
+  for (const script of scripts) {
+    logger.log(script);
+  }
+
+  process.exit(0);
+}
 
 if (positionals.length === 0) {
   await runInteractiveMode(cwd);

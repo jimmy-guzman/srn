@@ -21,8 +21,14 @@ function compareScriptFrequency(
 ) {
   const aCount = projectHistory[a]?.count ?? 0;
   const bCount = projectHistory[b]?.count ?? 0;
+  const diff = bCount - aCount;
 
-  return bCount - aCount;
+  if (diff !== 0) return diff;
+
+  const aLastRun = projectHistory[a]?.lastRun ?? "";
+  const bLastRun = projectHistory[b]?.lastRun ?? "";
+
+  return bLastRun.localeCompare(aLastRun);
 }
 
 function updateScriptRecord(

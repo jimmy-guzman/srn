@@ -63,19 +63,14 @@ async function handleFuzzySearch(
     process.exit(0);
   }
 
-  await executeScript(cwd, selected);
+  const code = await executeScript(cwd, selected);
+
+  process.exit(code);
 }
 
 export async function runDirectMode(cwd: string, positionals: string[]) {
   const packages = await getPackages(cwd);
   const rootPackage = packages.find((p) => p.isRoot);
-
-  if (positionals.length === 0) {
-    await handleFuzzySearch(cwd, packages, "");
-
-    return;
-  }
-
   const { scriptName, workspace } = parseScriptArgs(positionals, packages);
 
   try {
@@ -90,13 +85,16 @@ export async function runDirectMode(cwd: string, positionals: string[]) {
     const pkgPath = pkg ? join(cwd, pkg.relativeDir) : cwd;
 
     if (scriptName) {
-      await (pkg?.scripts?.[scriptName]
+      const code = await (pkg?.scripts?.[scriptName]
         ? executeScriptByName(
             pkgPath,
             scriptName,
             workspace ? pkg.name : undefined,
+            cwd,
           )
         : handleFuzzySearch(cwd, packages, scriptName));
+
+      process.exit(code ?? 0);
     }
   } catch (error) {
     logger.error(error);
