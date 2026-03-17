@@ -24,14 +24,16 @@ function getWorkspaceArgs(
   return configs[pm];
 }
 
-let cachedPackageManager: null | PackageManager = null;
+const cachedPackageManager = new Map<string, PackageManager>();
 
 function detectPackageManager(cwd?: string): PackageManager {
-  if (cachedPackageManager) {
-    return cachedPackageManager;
-  }
+  const rootDir = resolve(cwd ?? process.cwd());
 
-  const rootDir = cwd ?? process.cwd();
+  const cached = cachedPackageManager.get(rootDir);
+
+  if (cached) {
+    return cached;
+  }
 
   const lockFiles = [
     { file: "pnpm-lock.yaml", manager: "pnpm" },
@@ -42,13 +44,13 @@ function detectPackageManager(cwd?: string): PackageManager {
 
   for (const { file, manager } of lockFiles) {
     if (existsSync(join(rootDir, file))) {
-      cachedPackageManager = manager;
+      cachedPackageManager.set(rootDir, manager);
 
       return manager;
     }
   }
 
-  cachedPackageManager = "npm";
+  cachedPackageManager.set(rootDir, "npm");
 
   return "npm";
 }
