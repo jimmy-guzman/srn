@@ -43,12 +43,20 @@ function detectPackageManager(cwd?: string): PackageManager {
     { file: "package-lock.json", manager: "npm" },
   ] as const;
 
-  for (const { file, manager } of lockFiles) {
-    if (existsSync(join(rootDir, file))) {
-      cachedPackageManager.set(rootDir, manager);
+  let dir = rootDir;
+  let parent = resolve(dir, "..");
 
-      return manager;
+  while (dir !== parent) {
+    for (const { file, manager } of lockFiles) {
+      if (existsSync(join(dir, file))) {
+        cachedPackageManager.set(rootDir, manager);
+
+        return manager;
+      }
     }
+
+    dir = parent;
+    parent = resolve(dir, "..");
   }
 
   cachedPackageManager.set(rootDir, "npm");
@@ -67,7 +75,9 @@ export async function executeScriptByName(
     ? getWorkspaceArgs(pm, workspace, scriptName)
     : ["run", scriptName];
 
-  const result = await x(pm, pmArgs, { nodeOptions: { stdio: "inherit" } });
+  const result = await x(pm, pmArgs, {
+    nodeOptions: { cwd: cwd ?? pkgPath, stdio: "inherit" },
+  });
 
   if (result.exitCode === 0) {
     await recordScript(resolve(pkgPath), scriptName);
@@ -86,7 +96,9 @@ export async function executeScript(cwd: string, selected: ScriptMatch) {
     ? getWorkspaceArgs(pm, selected.workspace, selected.script)
     : ["run", selected.script];
 
-  const result = await x(pm, pmArgs, { nodeOptions: { stdio: "inherit" } });
+  const result = await x(pm, pmArgs, {
+    nodeOptions: { cwd, stdio: "inherit" },
+  });
 
   if (result.exitCode === 0) {
     await recordScript(pkgPath, selected.script);
