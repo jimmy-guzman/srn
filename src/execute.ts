@@ -40,6 +40,7 @@ function detectPackageManager(cwd?: string): PackageManager {
     { file: "yarn.lock", manager: "yarn" },
     { file: "bun.lockb", manager: "bun" },
     { file: "bun.lock", manager: "bun" },
+    { file: "package-lock.json", manager: "npm" },
   ] as const;
 
   for (const { file, manager } of lockFiles) {
