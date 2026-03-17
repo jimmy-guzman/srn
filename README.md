@@ -19,7 +19,7 @@ pnpx srn
 
 - **Interactive fuzzy search** - Quickly find and run scripts with autocomplete
 - **Workspace support** - Works seamlessly with monorepos and single projects
-- **Smart sorting** - Frequently used scripts appear first
+- **Smart sorting** - Frequently used scripts appear first, with recently run scripts as a tiebreaker
 - **Direct execution** - Run scripts directly by name without prompting
 - **History tracking** - Remembers your most-used scripts per project
 
@@ -38,6 +38,8 @@ Usage:
   srn                       Interactive mode - fuzzy find and select script
   srn <script>              Run a script from package.json
   srn [workspace] <script>  Run a script in a specific workspace
+  srn list                  List all available scripts
+  srn ls                    List all available scripts (alias)
 
 Options:
   -h, --help               Show this help message
@@ -61,6 +63,9 @@ pnpx srn bui
 
 # Run workspace script by workspace folder name
 pnpx srn packages/utils test
+
+# List all available scripts
+pnpx srn list
 ```
 
 [packagephobia]: https://packagephobia.com/result?p=srn

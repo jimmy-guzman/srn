@@ -123,10 +123,6 @@ async function getWorkspacePackages(rootDir: string, rootPkg: PackageJson) {
   const matcher = picomatch.default(patterns);
   const packages: PackageInfo[] = [];
 
-  if (pkgJsonPaths.length > 1) {
-    packages.length = 0;
-  }
-
   for (const pkgPath of pkgJsonPaths) {
     if (pkgPath === rootPkgPath) continue;
 

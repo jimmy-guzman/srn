@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+
 import { join, resolve } from "pathe";
 import { x } from "tinyexec";
 
@@ -22,8 +24,13 @@ function getWorkspaceArgs(
   return configs[pm];
 }
 
-async function detectPackageManager(cwd?: string) {
-  const { access } = await import("node:fs/promises");
+let cachedPackageManager: null | PackageManager = null;
+
+function detectPackageManager(cwd?: string): PackageManager {
+  if (cachedPackageManager) {
+    return cachedPackageManager;
+  }
+
   const rootDir = cwd ?? process.cwd();
 
   const lockFiles = [
@@ -34,24 +41,25 @@ async function detectPackageManager(cwd?: string) {
   ] as const;
 
   for (const { file, manager } of lockFiles) {
-    try {
-      await access(join(rootDir, file));
+    if (existsSync(join(rootDir, file))) {
+      cachedPackageManager = manager;
 
       return manager;
-    } catch {
-      continue;
     }
   }
 
-  return "npm" as const;
+  cachedPackageManager = "npm";
+
+  return "npm";
 }
 
 export async function executeScriptByName(
   pkgPath: string,
   scriptName: string,
   workspace?: string,
+  cwd?: string,
 ) {
-  const pm = await detectPackageManager();
+  const pm = detectPackageManager(cwd ?? pkgPath);
   const pmArgs = workspace
     ? getWorkspaceArgs(pm, workspace, scriptName)
     : ["run", scriptName];
@@ -65,7 +73,7 @@ export async function executeScript(cwd: string, selected: ScriptMatch) {
     ? resolve(cwd, selected.workspacePath)
     : resolve(cwd);
 
-  const pm = await detectPackageManager();
+  const pm = detectPackageManager(cwd);
   const pmArgs = selected.workspace
     ? getWorkspaceArgs(pm, selected.workspace, selected.script)
     : ["run", selected.script];
