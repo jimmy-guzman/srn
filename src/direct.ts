@@ -85,7 +85,7 @@ export async function runDirectMode(cwd: string, positionals: string[]) {
     const pkgPath = pkg ? join(cwd, pkg.relativeDir) : cwd;
 
     if (scriptName) {
-      await (pkg?.scripts?.[scriptName]
+      const code = await (pkg?.scripts?.[scriptName]
         ? executeScriptByName(
             pkgPath,
             scriptName,
@@ -93,6 +93,8 @@ export async function runDirectMode(cwd: string, positionals: string[]) {
             cwd,
           )
         : handleFuzzySearch(cwd, packages, scriptName));
+
+      process.exit(code ?? 0);
     }
   } catch (error) {
     logger.error(error);

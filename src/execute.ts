@@ -67,8 +67,13 @@ export async function executeScriptByName(
     ? getWorkspaceArgs(pm, workspace, scriptName)
     : ["run", scriptName];
 
-  await x(pm, pmArgs, { nodeOptions: { stdio: "inherit" } });
-  await recordScript(resolve(pkgPath), scriptName);
+  const result = await x(pm, pmArgs, { nodeOptions: { stdio: "inherit" } });
+
+  if (result.exitCode === 0) {
+    await recordScript(resolve(pkgPath), scriptName);
+  }
+
+  return result.exitCode;
 }
 
 export async function executeScript(cwd: string, selected: ScriptMatch) {
